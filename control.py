@@ -7,6 +7,7 @@ from mediapipe.framework.formats import landmark_pb2
 import numpy as np
 import cv2
 import pyautogui
+from math import sqrt
 
 
 def draw_landmarks_on_image(rgb_image, detection_result):
@@ -38,12 +39,21 @@ def get_average_hand_location(detection_result):
 	avg_y = (sum([cur[idx].y for idx in range(len(cur))]) / len(cur)) * SCREEN_HEIGHT
 	return avg_x, avg_y
 
+def is_pinch(detection_result):
+	cur = detection_result.hand_landmarks[0]
+	thumb = (cur[4].x, cur[4].y, cur[4].z)
+	index = (cur[8].x, cur[8].y, cur[8].z)
+	if sqrt((thumb[0] - index[0]) ** 2 + (thumb[1] - index[1]) ** 2 + (thumb[2] - index[2]) ** 2) < CLICK_THRESHOLD:
+		return True
+	return False
+
 def get_result(result, output_image, timestamp_ms):
-	global img
+	global img, landmarks
 	img = output_image.numpy_view()
 	if len(result.hand_landmarks) > 0:
-		global landmarks
 		landmarks = result
+	else:
+		landmarks = None
 
 
 BaseOptions = mp.tasks.BaseOptions
@@ -51,15 +61,16 @@ HandLandmarker = vision.HandLandmarker
 HandLandmarkerOptions = vision.HandLandmarkerOptions
 VisionRunningMode = vision.RunningMode
 
-cam = cv2.VideoCapture(1)
-cam.set(cv2.CAP_PROP_FPS, 30)
+cam = cv2.VideoCapture(0)
+cam.set(cv2.CAP_PROP_FPS, 60)
 
 SCREEN_WIDTH, SCREEN_HEIGHT = pyautogui.size()
+CLICK_THRESHOLD = 0.05
 
 # Create a hand landmarker instance with the image mode:
 options = HandLandmarkerOptions(
-	base_options=BaseOptions(model_asset_path=r"/Users/paul/Documents/Python/handControl/hand_landmarker.task"),
-	num_hands=2,
+	base_options=BaseOptions(model_asset_path=r"C:\Users\Paul Maresquier\Documents\Code\Python\HandControl\hand_landmarker.task"),
+	num_hands=1,
 	running_mode=VisionRunningMode.LIVE_STREAM,
 	result_callback=get_result)
 with HandLandmarker.create_from_options(options) as landmarker:
@@ -77,8 +88,12 @@ with HandLandmarker.create_from_options(options) as landmarker:
 		if landmarks is not None:
 			land_img = draw_landmarks_on_image(img, landmarks)
 			hand = get_average_hand_location(landmarks)
+			if is_pinch(landmarks):
+				pyautogui.leftClick()
 			pyautogui.moveTo(hand[0], hand[1])
 			cv2.imshow('Camera', land_img)
+		else:
+			cv2.imshow('Camera', img)
 
 		# Press 'q' to exit the loop
 		if cv2.waitKey(1) == ord('q'):
