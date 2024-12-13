@@ -70,13 +70,15 @@ PLATFORM = platform.system()
 
 SCREEN_WIDTH, SCREEN_HEIGHT = pag.size()
 CLICK_THRESHOLD = 0.08
-DRAG_THRESHOLD_SECS = 0.5
+DRAG_THRESHOLD_SECS = 0.3
 click = 0
+
+delegate = BaseOptions.Delegate.GPU if PLATFORM in ["Linux", "Darwin"] else BaseOptions.Delegate.CPU
 
 # Create a hand landmarker instance with the image mode:
 options = HandLandmarkerOptions(
-	base_options=BaseOptions(model_asset_path=r"/Users/paul/Documents/Python/handControl/hand_landmarker.task",
-	                         delegate=BaseOptions.Delegate.GPU),
+	base_options=BaseOptions(model_asset_path=r"C:\Users\Paul Maresquier\Documents\Code\Python\HandControl\hand_landmarker.task",
+	                         delegate=delegate),
 	num_hands=1,
 	running_mode=VisionRunningMode.LIVE_STREAM,
 	result_callback=get_result)
@@ -93,7 +95,7 @@ with HandLandmarker.create_from_options(options) as landmarker:
 			mp_image = mp.Image(image_format=mp.ImageFormat.SRGBA, data=cv2.cvtColor(frame, cv2.COLOR_RGB2RGBA))
 			landmarker.detect_async(mp_image, int((time.time() - timestamp) * 1000))
 
-		if landmarks is not None:
+		if landmarks is not None and len(landmarks.hand_landmarks[0]) > 0:
 			land_img = draw_landmarks_on_image(cv2.cvtColor(img, cv2.COLOR_RGBA2RGB), landmarks)
 			hand = get_average_hand_location(landmarks)
 			pinch = is_pinch(landmarks)
