@@ -1,14 +1,14 @@
+import platform
 import time
+from math import sqrt
 
+import cv2
 import mediapipe as mp
-from mediapipe.tasks.python import vision
+import numpy as np
+import pyautogui as pag
 from mediapipe import solutions
 from mediapipe.framework.formats import landmark_pb2
-import numpy as np
-import cv2
-import pyautogui as pag
-from math import sqrt
-import platform
+from mediapipe.tasks.python import vision
 
 
 def draw_landmarks_on_image(rgb_image, detection_result):
@@ -40,6 +40,7 @@ def get_average_hand_location(detection_result):
 	avg_y = (sum([cur[idx].y for idx in range(len(cur))]) / len(cur)) * SCREEN_HEIGHT
 	return avg_x, avg_y
 
+
 def is_pinch(detection_result):
 	cur = detection_result.hand_landmarks[0]
 	thumb = (cur[4].x, cur[4].y, cur[4].z)
@@ -47,6 +48,7 @@ def is_pinch(detection_result):
 	if sqrt((thumb[0] - index[0]) ** 2 + (thumb[1] - index[1]) ** 2 + (thumb[2] - index[2]) ** 2) < CLICK_THRESHOLD:
 		return True
 	return False
+
 
 def get_result(result, output_image, timestamp_ms):
 	global img, landmarks, prev_time
